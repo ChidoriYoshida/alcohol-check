@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アルコールチェック記録</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <h2>アルコールチェック記録</h2>
+    <p>社内の合言葉を入力してください。合言葉は管理者にお問い合わせください。</p>
+    <input type="password" id="passcode-input" placeholder="合言葉">
+    <button class="submit-btn" id="passcode-submit" style="margin-top:12px;">入る</button>
+    <div class="login-error" id="login-error">合言葉が正しくありません</div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none;">
+  <header class="top">
+    <div class="brand"><div class="mark"></div><h1>アルコールチェック</h1></div>
+    <div class="sub">乗務前点呼・酒気帯び確認の記録</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="input">入力</button>
+    <button class="tab-btn" data-tab="ledger">記録一覧</button>
+    <button class="tab-btn" data-tab="staff">担当者管理</button>
+  </nav>
+
+  <main id="main"></main>
+  <div class="toast" id="toast"></div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close">×</button>
+  <div>
+    <img id="lightbox-img" src="" alt="検査時の写真">
+    <div class="lightbox-meta" id="lightbox-meta"></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
