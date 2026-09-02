@@ -15,14 +15,17 @@ function todayStr() {
 
 /* ---------- API HELPERS ---------- */
 async function apiGet(action, params) {
-  const usp = new URLSearchParams({ action, passcode, ...(params || {}) });
-  const res = await fetch(`${API_URL}?${usp.toString()}`);
+  // ブラウザによる古いレスポンスのキャッシュを防ぐため、毎回異なるパラメータを付与し、
+  // fetchのキャッシュも明示的に無効化する。
+  const usp = new URLSearchParams({ action, passcode, _: Date.now().toString(), ...(params || {}) });
+  const res = await fetch(`${API_URL}?${usp.toString()}`, { cache: "no-store" });
   return res.json();
 }
 
 async function apiPost(action, payload) {
   const res = await fetch(API_URL, {
     method: "POST",
+    cache: "no-store",
     body: JSON.stringify({ action, passcode, ...(payload || {}) }),
   });
   return res.json();
@@ -31,8 +34,8 @@ async function apiPost(action, payload) {
 /* ---------- LOGIN ---------- */
 async function tryLogin(code) {
   const testPasscode = code;
-  const usp = new URLSearchParams({ action: "staff", passcode: testPasscode });
-  const res = await fetch(`${API_URL}?${usp.toString()}`);
+  const usp = new URLSearchParams({ action: "staff", passcode: testPasscode, _: Date.now().toString() });
+  const res = await fetch(`${API_URL}?${usp.toString()}`, { cache: "no-store" });
   const data = await res.json();
   return data.ok === true;
 }
