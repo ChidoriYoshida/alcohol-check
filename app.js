@@ -7,7 +7,7 @@ let staff = [];
 let leaders = [];
 let currentTab = "input";
 let ledgerMonth = new Date().toISOString().slice(0, 7);
-let inputState = { method: "device", judge: null, date: todayStr(), photo: null };
+let inputState = { method: "device", judge: null, date: todayStr(), photo: null, name: null, checker: null };
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -105,7 +105,7 @@ function renderInput() {
       </div>
       <div class="field">
         <label>対象者（運転者）</label>
-        <select id="f-name">${staff.map((s) => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("")}</select>
+        <select id="f-name">${staff.map((s) => `<option value="${escapeHtml(s)}" ${s === (inputState.name || staff[0]) ? "selected" : ""}>${escapeHtml(s)}</option>`).join("")}</select>
       </div>
       <div class="field">
         <label>検査方法</label>
@@ -121,8 +121,7 @@ function renderInput() {
         <input type="file" id="f-photo" accept="image/*" capture="environment" style="display:none;">
       </div>
       <div class="field">
-        <label>検査担当者（リーダー・代理者のみ）</label>
-        <select id="f-checker">${leaders.map((l) => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("")}</select>
+        <div id="checker-field"></div>
       </div>
       <button class="submit-btn" id="save-btn">記録する</button>
       <div class="readout" id="readout"></div>
@@ -130,10 +129,16 @@ function renderInput() {
   `;
   renderMethodInput();
   renderPhotoField();
+  renderCheckerField();
 
   document.getElementById("f-date").addEventListener("change", (e) => { inputState.date = e.target.value; });
+  document.getElementById("f-name").addEventListener("change", (e) => { inputState.name = e.target.value; });
   main.querySelectorAll("[data-method]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      // 再描画前に、今選択されている値をすべて保持しておく（対象者・担当者が消えるのを防ぐ）
+      inputState.date = document.getElementById("f-date").value;
+      inputState.name = document.getElementById("f-name").value;
+      inputState.checker = document.getElementById("f-checker").value;
       inputState.method = btn.dataset.method;
       inputState.judge = null;
       renderInput();
@@ -141,6 +146,25 @@ function renderInput() {
   });
   document.getElementById("f-photo").addEventListener("change", onPhotoSelected);
   document.getElementById("save-btn").addEventListener("click", onSave);
+}
+
+function checkerOptional() {
+  return inputState.method === "device" && !!inputState.photo;
+}
+
+function renderCheckerField() {
+  const wrap = document.getElementById("checker-field");
+  const optionalNote = checkerOptional()
+    ? '<span style="font-weight:400;color:var(--ink-soft);">　※写真添付のため省略可</span>'
+    : "";
+  wrap.innerHTML = `
+    <label>検査担当者（リーダー・代理者のみ）${optionalNote}</label>
+    <select id="f-checker">
+      <option value="" ${!inputState.checker ? "selected" : ""}>（未選択）</option>
+      ${leaders.map((l) => `<option value="${escapeHtml(l)}" ${l === inputState.checker ? "selected" : ""}>${escapeHtml(l)}</option>`).join("")}
+    </select>
+  `;
+  document.getElementById("f-checker").addEventListener("change", (e) => { inputState.checker = e.target.value; });
 }
 
 function renderMethodInput() {
@@ -187,7 +211,7 @@ function renderPhotoField() {
         <img src="${inputState.photo}" alt="検査時の写真プレビュー">
         <button type="button" class="photo-remove" id="photo-remove" aria-label="写真を削除">×</button>
       </div>`;
-    document.getElementById("photo-remove").addEventListener("click", () => { inputState.photo = null; renderPhotoField(); });
+    document.getElementById("photo-remove").addEventListener("click", () => { inputState.photo = null; renderPhotoField(); renderCheckerField(); });
   } else {
     wrap.innerHTML = `<div class="photo-box" id="photo-box">タップして写真を撮影・選択</div>`;
     document.getElementById("photo-box").addEventListener("click", () => document.getElementById("f-photo").click());
@@ -205,6 +229,7 @@ async function onPhotoSelected(e) {
     showToast("写真の読み込みに失敗しました");
   }
   renderPhotoField();
+  renderCheckerField();
   e.target.value = "";
 }
 
@@ -237,7 +262,7 @@ async function onSave() {
   const name = document.getElementById("f-name").value;
   const checker = document.getElementById("f-checker").value;
   if (!date || !name) { showToast("日付と対象者を確認してください"); return; }
-  if (!checker) { showToast("検査担当者（リーダー・代理者）を選択してください"); return; }
+  if (!checker && !checkerOptional()) { showToast("検査担当者（リーダー・代理者）を選択してください"); return; }
 
   let value = null;
   if (inputState.method === "device") {
@@ -265,6 +290,8 @@ async function onSave() {
     showToast(`${name}さんの記録を保存しました`);
     inputState.judge = null;
     inputState.photo = null;
+    inputState.name = name;
+    inputState.checker = checker;
     document.getElementById("f-checker").value = checker;
     renderMethodInput();
     renderPhotoField();
@@ -365,7 +392,8 @@ function openLightbox(entry, dateStr, name) {
   const resultText = entry.method === "device"
     ? `検知器 ${Number(entry.value).toFixed(2)}mg/L（${entry.judge === "ng" ? "運転不可" : "運転可"}）`
     : `目視（${entry.judge === "ng" ? "運転不可" : "運転可"}）`;
-  document.getElementById("lightbox-meta").textContent = `${dateStr}　${name}　${resultText}　担当：${entry.checker}`;
+  const checkerLabel = entry.checker ? entry.checker : "（写真記録のみ）";
+  document.getElementById("lightbox-meta").textContent = `${dateStr}　${name}　${resultText}　担当：${checkerLabel}`;
   lb.classList.add("show");
 }
 function closeLightbox() { document.getElementById("lightbox").classList.remove("show"); }
